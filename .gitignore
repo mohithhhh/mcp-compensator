@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# mcp-compensator runtime artifacts
+*.db
+compensators.runtime.yaml

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-compensator"
+version = "0.1.0"
+description = "An MCP proxy that transparently forwards tool calls to downstream MCP servers and adds checkpoint/undo via the saga/compensation pattern."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "mcp-compensator contributors" }]
+keywords = ["mcp", "model-context-protocol", "proxy", "undo", "saga", "compensation"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "mcp==1.29.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+mcp-compensator = "compensator.proxy:main"
+
+[tool.setuptools.packages.find]
+include = ["compensator*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

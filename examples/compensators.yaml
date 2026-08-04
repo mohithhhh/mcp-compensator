@@ -1,0 +1,76 @@
+# Example compensator registry for the tasks demo (see examples/tasks_server.py
+# and demo.py). Two top-level keys:
+#
+#   servers -- downstream MCP servers the proxy launches and forwards to.
+#   tools   -- the compensator policy for each downstream tool, keyed by its
+#              namespaced name "{server}__{tool}" (double underscore).
+#
+# `command` below should be an absolute path to a Python interpreter that
+# has this project's dependencies installed. MCP subprocess environments do
+# NOT inherit your shell beyond a small safe allowlist (PATH, HOME, ...), so
+# a bare "python3" only works if that interpreter is genuinely first on
+# PATH -- fine for a quickstart run from an activated venv, but demo.py
+# resolves this to sys.executable itself at runtime to stay portable
+# regardless of how it's invoked. When wiring up a registry by hand for
+# real use, prefer something explicit like /path/to/venv/bin/python.
+servers:
+  tasks:
+    command: python3
+    args:
+      - examples/tasks_server.py
+
+tools:
+  # add_task's result contains the new row's id, which is everything
+  # delete_task needs to reverse it -- a textbook `reversible` pair.
+  tasks__add_task:
+    classification: reversible
+    inverse_tool: tasks__delete_task
+    inverse_args:
+      id: "{result.id}"
+
+  # delete_task destroys a row outright, so there's no result to build an
+  # inverse from -- it needs a snapshot of the row taken *before* the
+  # delete runs, then a compensator that reinserts it from that snapshot.
+  tasks__delete_task:
+    classification: compensable
+    snapshot_tool: tasks__get_task
+    snapshot_args:
+      id: "{args.id}"
+    inverse_tool: tasks__restore_task
+    inverse_args:
+      id: "{snapshot.id}"
+      title: "{snapshot.title}"
+      status: "{snapshot.status}"
+
+  tasks__complete_task:
+    classification: reversible
+    inverse_tool: tasks__uncomplete_task
+    inverse_args:
+      id: "{args.id}"
+
+  tasks__uncomplete_task:
+    classification: reversible
+    inverse_tool: tasks__complete_task
+    inverse_args:
+      id: "{args.id}"
+
+  # restore_task only exists to compensate for delete_task, but it is
+  # itself a mutating call -- if something ran restore_task directly, its
+  # own inverse is just deleting the row it created.
+  tasks__restore_task:
+    classification: reversible
+    inverse_tool: tasks__delete_task
+    inverse_args:
+      id: "{result.id}"
+
+  # Pure lookups: no side effects, nothing to journal or undo.
+  tasks__get_task:
+    classification: read
+  tasks__list_tasks:
+    classification: read
+
+  # No entry for tasks__uncomplete_task's own compensator loop-back is
+  # needed beyond what's above. Anything left out of this file entirely
+  # (imagine a real downstream server with, say, a `send_notification`
+  # tool and no way to unsend it) defaults to `unknown` -- still journaled
+  # for visibility, but undo_to refuses to touch it rather than guess.
