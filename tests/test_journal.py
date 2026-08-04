@@ -30,6 +30,20 @@ async def test_current_checkpoint_auto_creates(journal: Journal):
     assert await journal.current_checkpoint() == checkpoint_id
 
 
+async def test_list_checkpoints_newest_first(journal: Journal):
+    first = await journal.new_checkpoint("first")
+    second = await journal.new_checkpoint("second")
+    third = await journal.new_checkpoint("third")
+
+    checkpoints = await journal.list_checkpoints()
+    assert [c.id for c in checkpoints] == [third, second, first]
+    assert [c.label for c in checkpoints] == ["third", "second", "first"]
+
+
+async def test_list_checkpoints_empty(journal: Journal):
+    assert await journal.list_checkpoints() == []
+
+
 async def test_new_checkpoint_ordering(journal: Journal):
     first = await journal.new_checkpoint("first")
     second = await journal.new_checkpoint("second")

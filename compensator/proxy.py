@@ -1,7 +1,8 @@
 """The aggregator: a low-level MCP server that forwards every downstream
-tool call transparently and adds four meta tools -- checkpoint,
-list_changes, undo_to, explain_blast_radius -- that give the calling agent
-checkpoint/undo capability over everything that happens through it.
+tool call transparently and adds five meta tools -- checkpoint,
+list_checkpoints, list_changes, undo_to, explain_blast_radius -- that give
+the calling agent checkpoint/undo capability over everything that happens
+through it.
 
 Deliberately built on `mcp.server.lowlevel.Server` rather than FastMCP:
 this proxy needs to forward arbitrary downstream tool schemas verbatim,
@@ -31,7 +32,7 @@ from mcp.server.models import InitializationOptions
 from mcp.types import CallToolResult, TextContent, Tool
 
 from .downstream import DownstreamServer
-from .journal import Change, Journal
+from .journal import Change, Checkpoint, Journal
 from .registry import Registry, ToolPolicy, resolve_args
 from .results import result_to_value
 
@@ -54,6 +55,15 @@ META_TOOLS: dict[str, Tool] = {
                 "label": {"type": "string", "description": "Optional human-readable label for this checkpoint."}
             },
         },
+    ),
+    "list_checkpoints": Tool(
+        name="list_checkpoints",
+        description=(
+            "List every checkpoint ever created, newest first, as "
+            "{id, label, created_at}. Use this to find a checkpoint_id for "
+            "list_changes or undo_to when you don't already have one handy."
+        ),
+        inputSchema={"type": "object", "properties": {}},
     ),
     "list_changes": Tool(
         name="list_changes",
@@ -146,6 +156,10 @@ def _json_result(value: Any) -> CallToolResult:
     )
 
 
+def _checkpoint_to_dict(checkpoint: Checkpoint) -> dict:
+    return {"id": checkpoint.id, "label": checkpoint.label, "created_at": checkpoint.created_at}
+
+
 def _change_to_dict(change: Change) -> dict:
     return {
         "id": change.id,
@@ -221,6 +235,10 @@ class Proxy:
         if name == "checkpoint":
             checkpoint_id = await self.journal.new_checkpoint(arguments.get("label"))
             return _json_result({"checkpoint_id": checkpoint_id})
+
+        if name == "list_checkpoints":
+            checkpoints = await self.journal.list_checkpoints()
+            return _json_result({"checkpoints": [_checkpoint_to_dict(c) for c in checkpoints]})
 
         if name == "list_changes":
             changes = await self.journal.changes_since(arguments.get("checkpoint_id"))
