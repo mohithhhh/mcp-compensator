@@ -48,7 +48,7 @@ Requires Python 3.10+. `mcp` is pinned to `1.29.0` — see [Known
 gotchas](#known-gotchas).
 
 ```bash
-git https://github.com/mohithhhh/mcp-compensator
+git clone https://github.com/mohithhhh/mcp-compensator
 cd mcp-compensator
 python3 -m venv .venv
 source .venv/bin/activate
@@ -115,6 +115,81 @@ pytest
 3. Your agent now sees every downstream tool renamed to
    `{server}__{tool}`, plus `checkpoint`, `list_changes`, `undo_to`, and
    `explain_blast_radius`.
+
+## Configuring in an MCP client
+
+`mcp-compensator` is a normal stdio MCP server, so any MCP-capable client
+can launch it directly — you're just pointing the client at
+`python -m compensator.proxy` instead of at your downstream servers. Use
+an **absolute path** to the interpreter that has this project's
+dependencies installed (see [Known gotchas](#known-gotchas) — don't rely
+on a bare `python`/`python3` resolving correctly, since MCP subprocess
+environments don't inherit your shell's activated venv).
+
+### Claude Code
+
+Fastest path — one CLI command (`--` separates Claude Code's own flags
+from the server's command):
+
+```bash
+claude mcp add --scope project mcp-compensator \
+  -- /absolute/path/to/mcp-compensator/.venv/bin/python -m compensator.proxy \
+  --config /absolute/path/to/mcp-compensator/compensators.yaml \
+  --db /absolute/path/to/mcp-compensator/compensator.db
+```
+
+`--scope project` writes the entry into `.mcp.json` at your project root
+so it's shared via version control; use `--scope user` instead for a
+config available across all your projects, or omit `--scope` for a
+local-only entry. Equivalently, edit `.mcp.json` by hand:
+
+```json
+{
+  "mcpServers": {
+    "mcp-compensator": {
+      "command": "/absolute/path/to/mcp-compensator/.venv/bin/python",
+      "args": [
+        "-m", "compensator.proxy",
+        "--config", "/absolute/path/to/mcp-compensator/compensators.yaml",
+        "--db", "/absolute/path/to/mcp-compensator/compensator.db"
+      ]
+    }
+  }
+}
+```
+
+Restart Claude Code (or run `/mcp` to check connection status) and the
+proxy's tools — including `checkpoint`, `list_changes`, `undo_to`,
+`explain_blast_radius`, and every namespaced downstream tool — appear
+alongside your other tools.
+
+### GitHub Copilot (VS Code)
+
+VS Code's native MCP support (which Copilot Chat's agent mode uses) reads
+`.vscode/mcp.json` at your workspace root:
+
+```json
+{
+  "servers": {
+    "mcp-compensator": {
+      "type": "stdio",
+      "command": "/absolute/path/to/mcp-compensator/.venv/bin/python",
+      "args": [
+        "-m", "compensator.proxy",
+        "--config", "/absolute/path/to/mcp-compensator/compensators.yaml",
+        "--db", "/absolute/path/to/mcp-compensator/compensator.db"
+      ]
+    }
+  }
+}
+```
+
+Or use the guided flow instead of hand-editing JSON: open the Command
+Palette (`Cmd/Ctrl+Shift+P`) → **MCP: Add Server** → choose **Command
+(stdio)** → point it at the interpreter/args above → choose **Workspace**
+to write it into `.vscode/mcp.json` (or **Global** for a user-level
+config). Then open the Chat view, switch to **Agent** mode, and the
+proxy's tools show up in the tools picker.
 
 ## Registry format
 
