@@ -124,6 +124,16 @@ class Journal:
             return None
         return Checkpoint(id=row["id"], label=row["label"], created_at=row["created_at"])
 
+    async def list_checkpoints(self) -> list[Checkpoint]:
+        """Every checkpoint ever created, newest first -- mirrors the
+        newest-first convention of changes_since()."""
+        return await asyncio.to_thread(self._list_checkpoints)
+
+    def _list_checkpoints(self) -> list[Checkpoint]:
+        conn = self._connect()
+        rows = conn.execute("SELECT * FROM checkpoints ORDER BY id DESC").fetchall()
+        return [Checkpoint(id=row["id"], label=row["label"], created_at=row["created_at"]) for row in rows]
+
     # -- changes ------------------------------------------------------------
 
     async def record_change(

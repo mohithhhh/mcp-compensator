@@ -6,10 +6,10 @@ and can undo them.
 `mcp-compensator` sits in front of the MCP servers you already use. Point
 your agent at the proxy instead of at those servers directly, and every
 tool call still gets forwarded through unchanged — same tools, same
-schemas, same results — but now the agent also has four extra abilities:
-start a **checkpoint**, **list** what's changed since one, **undo**
-everything reversible since one, and ask **whether** a given tool call
-would even be undoable before running it.
+schemas, same results — but now the agent also has five extra abilities:
+start a **checkpoint**, **see** what checkpoints exist, **list** what's
+changed since one, **undo** everything reversible since one, and ask
+**whether** a given tool call would even be undoable before running it.
 
 ## The idea, in plain language
 
@@ -113,8 +113,8 @@ pytest
    ```
 
 3. Your agent now sees every downstream tool renamed to
-   `{server}__{tool}`, plus `checkpoint`, `list_changes`, `undo_to`, and
-   `explain_blast_radius`.
+   `{server}__{tool}`, plus `checkpoint`, `list_checkpoints`,
+   `list_changes`, `undo_to`, and `explain_blast_radius`.
 
 ## Configuring in an MCP client
 
@@ -159,9 +159,9 @@ local-only entry. Equivalently, edit `.mcp.json` by hand:
 ```
 
 Restart Claude Code (or run `/mcp` to check connection status) and the
-proxy's tools — including `checkpoint`, `list_changes`, `undo_to`,
-`explain_blast_radius`, and every namespaced downstream tool — appear
-alongside your other tools.
+proxy's tools — including `checkpoint`, `list_checkpoints`,
+`list_changes`, `undo_to`, `explain_blast_radius`, and every namespaced
+downstream tool — appear alongside your other tools.
 
 ### GitHub Copilot (VS Code)
 
@@ -264,11 +264,14 @@ anything the registry hasn't been told about.)
 
 ## API reference
 
-Four meta tools, alongside every namespaced downstream tool:
+Five meta tools, alongside every namespaced downstream tool:
 
 - **`checkpoint(label?)`** → starts a new checkpoint; returns
   `{"checkpoint_id": <int>}`. Every mutating call after this point is
   journaled against it.
+- **`list_checkpoints()`** → lists every checkpoint ever created, newest
+  first, as `{id, label, created_at}`. Use this to find a `checkpoint_id`
+  for `list_changes`/`undo_to` when you don't already have one in hand.
 - **`list_changes(checkpoint_id?)`** → lists not-yet-undone journaled
   changes, newest first. Omit `checkpoint_id` to see every outstanding
   change; pass one to see only changes at or after it.
