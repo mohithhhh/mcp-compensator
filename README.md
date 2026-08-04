@@ -48,7 +48,7 @@ Requires Python 3.10+. `mcp` is pinned to `1.29.0` — see [Known
 gotchas](#known-gotchas).
 
 ```bash
-git clone https://github.com/<you>/mcp-compensator
+git https://github.com/mohithhhh/mcp-compensator
 cd mcp-compensator
 python3 -m venv .venv
 source .venv/bin/activate
