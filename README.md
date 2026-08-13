@@ -11,6 +11,9 @@ start a **checkpoint**, **see** what checkpoints exist, **list** what's
 changed since one, **undo** everything reversible since one, and ask
 **whether** a given tool call would even be undoable before running it.
 
+<img width="932" height="463" alt="Screenshot 2026-08-04 at 11 57 25 PM" src="https://github.com/user-attachments/assets/ef92261e-34b7-4afc-9b65-37687466aeca" />
+
+
 ## The idea, in plain language
 
 Picture a concierge who's about to rearrange your apartment. Before they
